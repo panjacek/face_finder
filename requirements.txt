@@ -1,0 +1,3 @@
+mediapipe==0.10.15
+colorlog==6.8.2
+streamlit==1.38.0

@@ -1,0 +1,20 @@
+services:
+  face_finder: &face_finder_base
+    build: .
+    image: face_finder:last
+    volumes:
+      - ${PWD}:/app
+    user: ${UID:-1000}
+    command: "face_finder --log_lvl=DEBUG ${IMAGES}"
+
+  face_finder_gpu:
+    image: face_finder:last
+    devices:
+      - /dev/dri/card0
+
+  face_finder_web:
+    <<: *face_finder_base
+    image: face_finder:last
+    ports:
+      - "8080:8501"
+    command: "streamlit run app.py"
