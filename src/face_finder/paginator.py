@@ -1,15 +1,19 @@
 """Based on example from https://gist.github.com/treuille/2ce0acb6697f205e44e3e0f576e810b7"""
 
 import itertools
+from collections.abc import Iterable, Iterator
+from typing import Any
 
 import streamlit as st
 
 
-def page_format_func(i):
+def page_format_func(i: int) -> str:
     return f"Page {i}"
 
 
-def paginator(label, items, items_per_page=10, on_sidebar=True):
+def paginator(
+    label: str, items: Iterable[Any], items_per_page: int = 10, on_sidebar: bool = True
+) -> Iterator[tuple[int, Any]]:
     """Lets the user paginate a set of items.
     Parameters
     ----------
