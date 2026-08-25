@@ -4,15 +4,18 @@ from pathlib import Path
 import streamlit as st
 from streamlit.logger import get_logger
 
-from face_finder import face_finder
-from helpers.paginator import paginator
+from face_finder import core
+from face_finder.paginator import paginator
 
 st.set_page_config(page_title="Face Finder", page_icon=":camera:", layout="wide")
 
-# add sublogger
 logger = get_logger(__name__)
 logger.setLevel("INFO")
 
+ROOT_DIR = os.environ.get("FACE_FINDER_ROOT", "/app")
+OUTPUT_DIR = os.environ.get("FACE_FINDER_OUTPUT", str(Path(ROOT_DIR) / "output"))
+IGNORED_FOLDERS = [".git", "__pycache__"]
+FILE_TYPES_TO_SHOW = [".jpg", ".jpeg", ".png"]
 
 st.title("Face Finder")
 
@@ -20,35 +23,29 @@ st.title("Face Finder")
 st.write("Select a folder")
 
 
-IGNORED_FOLDERS = [".git", "__pycache__"]
-FILE_TYPES_TO_SHOW = [".jpg", ".png"]
-OUTPUT_DIR = "/app/output"
-
-
-def get_images(folder):
+def get_images(folder: str) -> list[str]:
     image_list = []
-    for root, dirs, files in os.walk(folder):
+    for root, _dirs, files in os.walk(folder):
         for file in files:
             if any(file.lower().endswith(file_type) for file_type in FILE_TYPES_TO_SHOW):
                 image_list.append(os.path.join(root, file))
-    return image_list
+    return sorted(image_list)
 
 
 folder_selected = st.selectbox(
     "folder_to_show",
-    [x[0] for x in os.walk("/app") if not any(ignored_x in x[0] for ignored_x in IGNORED_FOLDERS)],
+    [x[0] for x in os.walk(ROOT_DIR) if not any(ignored_x in x[0] for ignored_x in IGNORED_FOLDERS)],
     index=None,
 )
 
 
-def display_folder(folder_selected, show_faces):
+def display_folder(folder_selected: str, show_faces: bool) -> None:
     folder = Path(folder_selected)
-    image_list = []
     if show_faces:
-        face_finder.process_folder(folder)
+        core.process_folder(folder, OUTPUT_DIR)
         image_list = get_images(OUTPUT_DIR)
     else:
-        image_list = get_images(folder)
+        image_list = get_images(str(folder))
 
     if len(image_list) == 0:
         st.warning("No images found in selected folder")
@@ -61,8 +58,7 @@ def display_folder(folder_selected, show_faces):
         on_sidebar=True,
     )
 
-    indices_on_page, images_on_page = map(list, zip(*thumbs_paginator))
-    # captions_to_show = image_list
+    _indices_on_page, images_on_page = map(list, zip(*thumbs_paginator))
 
     st.image(images_on_page, width=300)
 

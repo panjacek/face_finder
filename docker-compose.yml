@@ -17,4 +17,4 @@ services:
     image: face_finder:last
     ports:
       - "8080:8501"
-    command: "streamlit run app.py"
+    command: "streamlit run src/web_app/app.py"

@@ -1,5 +1,56 @@
-[tool.black]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "face_finder"
+version = "0.1.0"
+description = "Face detection tool for image folders using MediaPipe"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = { text = "Unlicense" }
+authors = [
+    { name = "Jacek Kreft" }
+]
+dependencies = [
+    "mediapipe==0.10.15",
+    "colorlog>=6.8.2",
+]
+
+[project.scripts]
+face_finder = "face_finder.core:main"
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+    "bandit",
+]
+web = [
+    "streamlit>=1.38",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/face_finder"]
+
+[tool.ruff]
 line-length = 120
 
-[tool.isort]
-profile = "black"
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = ["mediapipe.*", "cv2.*", "google.protobuf.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

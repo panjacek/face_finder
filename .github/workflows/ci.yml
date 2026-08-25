@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-lint:
+    name: python / lint (ruff + mypy + bandit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+      - name: Sync env
+        run: uv sync --group dev --group web
+      - name: Lint
+        run: make lint
+
+  python-unit:
+    name: python / unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+      - name: Install cv2 system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libgl1 libglib2.0-0
+      - name: Sync env
+        run: uv sync --group dev --group web
+      - name: Pytest (unit + smoke, with coverage)
+        run: make test
+      - name: Streamlit app tests
+        run: make test-web
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-python
+          path: coverage.xml
+          if-no-files-found: warn
+
+  docker-build:
+    name: docker / image build
+    needs: [python-lint, python-unit]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build image
+        run: docker compose build face_finder

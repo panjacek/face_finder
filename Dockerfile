@@ -7,18 +7,17 @@ RUN apt-get update\
         libglib2.0-0 \
     && apt-get clean all
 
+COPY --from=ghcr.io/astral-sh/uv:0.12.5 /uv /uvx /usr/local/bin/
+
 WORKDIR /app
 
-COPY requirements.txt /app
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv
+ENV PATH="/opt/venv/bin:${PATH}"
 
-RUN pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml uv.lock README.md ./
+RUN uv sync --frozen --no-install-project --no-dev --group web
 
-COPY ./app.py /app/app.py
-COPY ./face_finder /app/face_finder
-COPY ./setup.py /app/setup.py
-COPY ./pages /app/pages
-COPY ./helpers /app/helpers
-
-RUN pip install --no-cache-dir -e /app
+COPY src ./src
+RUN uv sync --frozen --no-dev --group web
 
 EXPOSE 8501
