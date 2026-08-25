@@ -13,7 +13,7 @@ authors = [
     { name = "Jacek Kreft" }
 ]
 dependencies = [
-    "mediapipe==0.10.15",
+    "mediapipe==1.0.1",
     "colorlog>=6.8.2",
 ]
 
