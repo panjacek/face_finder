@@ -1,20 +1,22 @@
+x-app-base: &app_base
+  image: face_finder:last
+  volumes:
+    - ${PWD}:/app
+  user: ${UID:-1000}
+
 services:
-  face_finder: &face_finder_base
+  face_finder:
+    <<: *app_base
     build: .
-    image: face_finder:last
-    volumes:
-      - ${PWD}:/app
-    user: ${UID:-1000}
-    command: "face_finder --log_lvl=DEBUG ${IMAGES}"
+    command: "face_finder --log_lvl=DEBUG ${IMAGES:-}"
 
   face_finder_gpu:
-    image: face_finder:last
+    <<: *app_base
     devices:
-      - /dev/dri/card0
+      - /dev/dri:/dev/dri
 
   face_finder_web:
-    <<: *face_finder_base
-    image: face_finder:last
+    <<: *app_base
     ports:
       - "8080:8501"
     command: "streamlit run src/web_app/app.py"

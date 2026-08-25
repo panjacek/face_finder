@@ -8,3 +8,6 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    ignore:
+      # mediapipe 1.x = Tasks API rewrite, needs core.py migration (see docs/plans)
+      - dependency-name: "mediapipe"

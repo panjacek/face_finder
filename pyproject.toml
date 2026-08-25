@@ -29,7 +29,7 @@ dev = [
     "bandit",
 ]
 web = [
-    "streamlit>=1.38",
+    "streamlit>=1.38,<1.62",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -54,3 +54,6 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "gpu: DRI-mounted container smoke test (env validation, not GPU compute); run via make test-gpu",
+]
