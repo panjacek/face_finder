@@ -12,8 +12,9 @@ help: ## Show available targets
 
 ######### SETUP #########
 
-setup: ## Sync uv env (dev + web groups)
+setup: ## Sync uv env (dev + web groups) and fetch the face-detection model
 	uv sync --group dev --group web
+	uv run python scripts/fetch_model.py
 
 ######### TEST #########
 

@@ -10,8 +10,10 @@ from typing import Any
 import colorlog
 import cv2
 import mediapipe as mp
+import numpy as np
 
 IMAGE_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png"})
+MODEL_PATH = Path(__file__).resolve().parents[2] / "models" / "blaze_face_full_range.tflite"
 
 logger = logging.getLogger(__name__)
 
@@ -37,19 +39,42 @@ def config_logger(log_lvl: str) -> None:
 
 
 def find_images(folder: str | Path) -> Iterator[Path]:
-    for root, _dirs, files in os.walk(folder):
+    root_path = Path(folder)
+    if root_path.is_file():
+        if root_path.suffix.lower() in IMAGE_EXTENSIONS:
+            yield root_path
+        return
+    for root, _dirs, files in os.walk(root_path):
         for file_name in files:
             path = Path(root) / file_name
             if path.suffix.lower() in IMAGE_EXTENSIONS:
                 yield path
 
 
+def _draw_detection(annotated_image: np.ndarray, detection: Any) -> None:
+    # Tasks API returns pixel coords; the 6 keypoints are available on the detection
+    # but intentionally not drawn (box + score is the chosen output style).
+    box = detection.bounding_box
+    x, y, w, h = int(box.origin_x), int(box.origin_y), int(box.width), int(box.height)
+    cv2.rectangle(annotated_image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+    score = detection.categories[0].score
+    cv2.putText(
+        annotated_image,
+        f"{score:.2f}",
+        (x, max(y - 6, 12)),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.5,
+        (0, 255, 0),
+        1,
+        cv2.LINE_AA,
+    )
+
+
 def process_file(
     image_path: Path,
-    face_detection: Any,  # mediapipe.solutions.face_detection.FaceDetection
+    face_detector: Any,  # mediapipe.tasks.vision.FaceDetector
     output_dir: Path,
 ) -> bool:
-    mp_drawing = mp.solutions.drawing_utils
     t_start = time.monotonic()
     image = cv2.imread(str(image_path))
     if image is None:
@@ -57,8 +82,10 @@ def process_file(
         return False
     t_after_read = time.monotonic()
 
-    # Convert the BGR image to RGB and process it with MediaPipe Face Detection.
-    results = face_detection.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    # MediaPipe Tasks expects SRGB; cv2 loads BGR.
+    results = face_detector.detect(
+        mp.Image(image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    )
 
     if not results.detections:
         logger.warning(f"Nothing found on {image_path}")
@@ -66,7 +93,7 @@ def process_file(
 
     annotated_image = image.copy()
     for detection in results.detections:
-        mp_drawing.draw_detection(annotated_image, detection)
+        _draw_detection(annotated_image, detection)
 
     out_path = output_dir / image_path.name
     if not cv2.imwrite(str(out_path), annotated_image):
@@ -83,17 +110,24 @@ def process_file(
 
 
 def process_folder(folder: str | Path, output_dir: str | Path = "output") -> int:
-    mp_face_detection = mp.solutions.face_detection
+    if not MODEL_PATH.exists():
+        raise SystemExit(f"Face detection model missing at {MODEL_PATH} - run 'make setup'")
     out_dir = Path(output_dir)
     if not out_dir.exists():
         logger.warning(f"Creating {out_dir}")
         out_dir.mkdir(parents=True)
 
+    options = mp.tasks.vision.FaceDetectorOptions(
+        base_options=mp.tasks.BaseOptions(model_asset_path=str(MODEL_PATH)),
+        running_mode=mp.tasks.vision.RunningMode.IMAGE,
+        min_detection_confidence=0.7,
+    )
+
     found = 0
-    with mp_face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.7) as face_detection:
+    with mp.tasks.vision.FaceDetector.create_from_options(options) as face_detector:
         for image_path in find_images(folder):
             logger.debug(f"{image_path}")
-            found += process_file(image_path, face_detection, out_dir)
+            found += process_file(image_path, face_detector, out_dir)
     return found
 
 
