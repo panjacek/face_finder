@@ -109,3 +109,31 @@ def test_app_faces_isolated_per_folder(image_root: Path, fake_process: None) -> 
     assert not at.exception
     assert at.radio[0].value == "Faces"
     assert len(at.image) == 1
+
+
+def test_app_faces_redetects_when_folder_changes(image_root: Path) -> None:
+    calls: list[str] = []
+
+    def counting_process(folder: str, out_dir: str | Path) -> int:
+        calls.append(folder)
+        out = Path(out_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        assert cv2.imwrite(str(out / f"run{len(calls)}.jpg"), np.zeros((10, 10, 3), dtype=np.uint8))
+        return 1
+
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(core, "process_folder", counting_process)
+    try:
+        at = _boot()
+        at.selectbox[0].set_value(str(image_root)).run()
+        at.radio[0].set_value("Faces").run(timeout=120)
+        assert len(calls) == 1
+
+        _write_noise_image(image_root / "added_later.png", 10)
+        at.radio[0].set_value("Faces").run(timeout=120)
+
+        assert not at.exception
+        assert len(calls) == 2
+        assert len(at.image[0].value) == 2
+    finally:
+        monkeypatch.undo()

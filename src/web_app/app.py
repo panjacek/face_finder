@@ -59,8 +59,13 @@ def _output_subdir(folder: str) -> str:
     return str(Path(OUTPUT_DIR) / f"{Path(folder).name}_{tag}")
 
 
+def _folder_signature(folder: str) -> tuple[tuple[str, int, int], ...]:
+    # Content fingerprint so the detection cache invalidates when folder contents change.
+    return tuple((path, os.stat(path).st_mtime_ns, os.stat(path).st_size) for path in get_images(folder))
+
+
 @st.cache_data(show_spinner="Detecting faces...")
-def detect_faces(folder: str, out_dir: str) -> list[str]:
+def detect_faces(folder: str, out_dir: str, signature: tuple) -> list[str]:
     core.process_folder(folder, out_dir)
     return get_images(out_dir)
 
@@ -68,7 +73,7 @@ def detect_faces(folder: str, out_dir: str) -> list[str]:
 def display_folder(folder_selected: str, show_faces: bool) -> None:
     folder = Path(folder_selected)
     if show_faces:
-        image_list = detect_faces(str(folder), _output_subdir(str(folder)))
+        image_list = detect_faces(str(folder), _output_subdir(str(folder)), _folder_signature(str(folder)))
     else:
         image_list = get_images(str(folder))
 
