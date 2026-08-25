@@ -1,11 +1,13 @@
 # syntax=docker/dockerfile:1
-ARG BASE_IMAGE=python:3.12-slim
+ARG BASE_IMAGE=python:3.14-slim
 FROM ${BASE_IMAGE}
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         libgl1 \
         libglib2.0-0 \
+        libegl1 \
+        libgles2 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -22,6 +24,9 @@ WORKDIR /app
 COPY pyproject.toml uv.lock README.md ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-dev --group web
+
+COPY scripts/fetch_model.py ./scripts/fetch_model.py
+RUN python scripts/fetch_model.py
 
 COPY src ./src
 RUN --mount=type=cache,target=/root/.cache/uv \

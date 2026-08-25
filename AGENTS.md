@@ -13,8 +13,10 @@ Conventions for working in this repo.
 
 ## Toolchain
 
-- uv only: `make setup` (= `uv sync --group dev --group web`). Python pinned
-  to 3.12 via `.python-version` (mediapipe constraint).
+- uv only: `make setup` (= `uv sync --group dev --group web`, then
+  `scripts/fetch_model.py` downloads the face-detection model into gitignored
+  `models/` — see docs/model_choice.md). Python pinned to 3.14 via
+  `.python-version`.
 - Lint/format: ruff (line length 120), mypy (`disallow_untyped_defs`),
   bandit. `make lint` / `make format`.
 

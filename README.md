@@ -4,7 +4,8 @@
 
 Face detection for folders of images. Walks a directory tree, detects faces
 with [MediaPipe Face Detection](https://developers.google.com/mediapipe), and
-writes annotated copies (bounding boxes + keypoints) into an output folder.
+writes annotated copies (bounding boxes + confidence scores) into an output
+folder.
 
 Two ways to use it:
 
@@ -14,11 +15,11 @@ Two ways to use it:
 
 ## Quick start
 
-Requires [uv](https://docs.astral.sh/uv/) only (Python 3.12 is fetched
+Requires [uv](https://docs.astral.sh/uv/) only (Python 3.14 is fetched
 automatically; cv2 needs system `libgl1`/`libglib2.0-0`, see `Dockerfile`).
 
 ```bash
-make setup                       # uv sync --group dev --group web
+make setup                       # uv sync + download the face-detection model (see docs/model_choice.md)
 make run-cli CALC_ARGS="DB_jpg"  # process a folder
 ```
 

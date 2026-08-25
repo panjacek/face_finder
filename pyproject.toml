@@ -7,13 +7,13 @@ name = "face_finder"
 version = "0.1.0"
 description = "Face detection tool for image folders using MediaPipe"
 readme = "README.md"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.14"
 license = { text = "Unlicense" }
 authors = [
     { name = "Jacek Kreft" }
 ]
 dependencies = [
-    "mediapipe==0.10.15",
+    "mediapipe==1.0.1",
     "colorlog>=6.8.2",
 ]
 
@@ -29,7 +29,7 @@ dev = [
     "bandit",
 ]
 web = [
-    "streamlit>=1.38,<1.62",
+    "streamlit>=1.38",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -42,14 +42,14 @@ line-length = 120
 select = ["E4", "E7", "E9", "F", "UP"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.14"
 disallow_untyped_defs = true
 no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 
 [[tool.mypy.overrides]]
-module = ["mediapipe.*", "cv2.*", "google.protobuf.*"]
+module = ["mediapipe.*", "cv2.*", "google.protobuf.*", "fetch_model"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

@@ -170,3 +170,6 @@ random_multi/
 
 # local planning docs
 docs/plans/
+
+# downloaded face-detection model (see docs/model_choice.md)
+models/

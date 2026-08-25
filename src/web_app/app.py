@@ -1,3 +1,4 @@
+import hashlib
 import os
 from pathlib import Path
 
@@ -13,6 +14,9 @@ logger = get_logger(__name__)
 logger.setLevel("INFO")
 
 ROOT_DIR = os.environ.get("FACE_FINDER_ROOT", "/app")
+if not os.path.isdir(ROOT_DIR):
+    # /app only exists inside the container; fall back to cwd when running locally.
+    ROOT_DIR = os.getcwd()
 OUTPUT_DIR = os.environ.get("FACE_FINDER_OUTPUT", str(Path(ROOT_DIR) / "output"))
 IGNORED_FOLDERS = [".git", "__pycache__"]
 FILE_TYPES_TO_SHOW = [".jpg", ".jpeg", ".png"]
@@ -32,18 +36,39 @@ def get_images(folder: str) -> list[str]:
     return sorted(image_list)
 
 
-folder_selected = st.selectbox(
-    "folder_to_show",
-    [x[0] for x in os.walk(ROOT_DIR) if not any(ignored_x in x[0] for ignored_x in IGNORED_FOLDERS)],
-    index=None,
-)
+folder_options = [
+    x[0]
+    for x in os.walk(ROOT_DIR)
+    if not any(part.startswith(".") or part in IGNORED_FOLDERS for part in Path(x[0]).parts[1:])
+    and not (x[0] + os.sep).startswith(OUTPUT_DIR + os.sep)
+]
+
+if not folder_options:
+    st.warning(f"No browsable folders under {ROOT_DIR}")
+    folder_selected = None
+else:
+    folder_selected = st.selectbox(
+        "folder_to_show",
+        folder_options,
+        index=None,
+    )
+
+
+def _output_subdir(folder: str) -> str:
+    tag = hashlib.md5(folder.encode(), usedforsecurity=False).hexdigest()[:8]
+    return str(Path(OUTPUT_DIR) / f"{Path(folder).name}_{tag}")
+
+
+@st.cache_data(show_spinner="Detecting faces...")
+def detect_faces(folder: str, out_dir: str) -> list[str]:
+    core.process_folder(folder, out_dir)
+    return get_images(out_dir)
 
 
 def display_folder(folder_selected: str, show_faces: bool) -> None:
     folder = Path(folder_selected)
     if show_faces:
-        core.process_folder(folder, OUTPUT_DIR)
-        image_list = get_images(OUTPUT_DIR)
+        image_list = detect_faces(str(folder), _output_subdir(str(folder)))
     else:
         image_list = get_images(str(folder))
 
@@ -51,11 +76,13 @@ def display_folder(folder_selected: str, show_faces: bool) -> None:
         st.warning("No images found in selected folder")
         return
 
+    view = "faces" if show_faces else "raw"
     thumbs_paginator = paginator(
-        "Photos to check",
+        f"Photos to check ({view})",
         image_list,
         items_per_page=30,
         on_sidebar=True,
+        key=f"pag_{view}",
     )
 
     _indices_on_page, images_on_page = map(list, zip(*thumbs_paginator))
@@ -64,9 +91,8 @@ def display_folder(folder_selected: str, show_faces: bool) -> None:
 
 
 if folder_selected:
-    if st.checkbox("Show Raw", value=False):
+    view = st.radio("View", ["Raw", "Faces"], index=None, horizontal=True, key="view_mode")
+    if view == "Raw":
         display_folder(folder_selected, False)
-    show_faces = st.checkbox("Show Faces", value=False)
-
-    if show_faces:
-        display_folder(folder_selected, show_faces)
+    elif view == "Faces":
+        display_folder(folder_selected, True)

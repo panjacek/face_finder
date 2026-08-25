@@ -12,7 +12,7 @@ def page_format_func(i: int) -> str:
 
 
 def paginator(
-    label: str, items: Iterable[Any], items_per_page: int = 10, on_sidebar: bool = True
+    label: str, items: Iterable[Any], items_per_page: int = 10, on_sidebar: bool = True, key: str = "paginator"
 ) -> Iterator[tuple[int, Any]]:
     """Lets the user paginate a set of items.
     Parameters
@@ -23,8 +23,10 @@ def paginator(
         The items to display in the paginator.
     items_per_page: int
         The number of items to display per page.
-    on_sidebar: bool
+    on_sidebar : bool
         Whether to display the paginator widget on the sidebar.
+    key : str
+        Unique widget key; required when several paginators render at once.
 
     Returns
     -------
@@ -54,9 +56,8 @@ def paginator(
 
     # Display a pagination selectbox in the specified location.
     items = list(items)
-    n_pages = len(items)
     n_pages = (len(items) - 1) // items_per_page + 1
-    page_number = location.selectbox(label, range(n_pages), format_func=page_format_func)
+    page_number = location.selectbox(label, range(n_pages), format_func=page_format_func, key=key)
 
     # Iterate over the items in the page to let the user display them.
     min_index = page_number * items_per_page
