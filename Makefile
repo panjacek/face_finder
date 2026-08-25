@@ -5,7 +5,7 @@ ifeq ($(USE_GPU), 1)
 	SERVICE_NAME := $(SERVICE_NAME)_gpu
 endif
 
-.PHONY: help setup test test-web lint format run-cli up down shell run clean
+.PHONY: help setup test test-gpu lint format run-cli up down shell run clean build
 
 help: ## Show available targets
 	@awk -F ':.*?## ' '/^#########/ {printf "\n%s\n", $$0} /^[a-zA-Z_-]+:.*?## / {printf "%-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -17,11 +17,15 @@ setup: ## Sync uv env (dev + web groups)
 
 ######### TEST #########
 
-test: ## Unit + detection smoke tests with coverage
-	uv run --group dev pytest tests/test_core.py --cov=face_finder --cov-report=term-missing --cov-report=xml
+test: ## All uv-runnable tests (unit, smoke, web) with coverage; gpu tests excluded
+	uv run --group dev --group web pytest tests -m "not gpu" --cov=face_finder --cov-report=term-missing --cov-report=xml
 
-test-web: ## Streamlit AppTest web tests
-	uv run --group dev --group web pytest tests/test_web_app.py
+test-gpu: ## Container smoke test with /dev/dri mounted (env validation, NOT GPU compute)
+	docker compose run --rm \
+		-e UV_PROJECT_ENVIRONMENT=/tmp/test-venv \
+		-e UV_CACHE_DIR=/tmp/uv-cache \
+		face_finder_gpu \
+		uv run --group dev --frozen pytest tests/test_gpu.py -m gpu -v
 
 ######### LINT #########
 
@@ -46,7 +50,7 @@ run-web: ## Launch streamlit web UI on :8501
 ######### DOCKER #########
 
 build: ## Build docker image
-	docker compose build
+	docker compose build face_finder
 
 shell: ## Bash inside container (USE_GPU=1 for gpu variant)
 	docker compose run --rm $(SERVICE_NAME) /bin/bash

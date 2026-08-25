@@ -28,6 +28,6 @@ Conventions for working in this repo.
 ## Verification
 
 ```bash
-make lint && make test        # static + unit/smoke
-make test-web                 # Streamlit app tests (no browser needed)
+make lint && make test        # static + all uv-runnable tests (unit/smoke/web; gpu excluded)
+make test-gpu                 # container smoke test with /dev/dri mounted (GPU host only)
 ```

@@ -320,7 +320,7 @@ dev = [
     { name = "pytest-cov" },
     { name = "ruff" },
 ]
-web = [{ name = "streamlit", specifier = ">=1.38" }]
+web = [{ name = "streamlit", specifier = ">=1.38,<1.62" }]
 
 [[package]]
 name = "flatbuffers"
