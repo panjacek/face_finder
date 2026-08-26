@@ -2,6 +2,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import cv2
+import mediapipe as mp
 import numpy as np
 import pytest
 
@@ -129,3 +130,62 @@ def test_process_folder_smoke_real_detector(tmp_path: Path) -> None:
 
     assert out.exists()
     assert found == 0
+
+
+def test_detector_options_delegate_per_device() -> None:
+    cpu_options = core._detector_options("cpu")
+    gpu_options = core._detector_options("gpu")
+
+    assert cpu_options.base_options.delegate == mp.tasks.BaseOptions.Delegate.CPU
+    assert gpu_options.base_options.delegate == mp.tasks.BaseOptions.Delegate.GPU
+    assert str(gpu_options.base_options.model_asset_path).endswith("blaze_face_full_range.tflite")
+    assert gpu_options.running_mode == mp.tasks.vision.RunningMode.IMAGE
+
+
+class _CtxDetector:
+    def __init__(self, detections: list) -> None:
+        self._inner = _fake_detector(detections)
+
+    def detect(self, image: object) -> SimpleNamespace:
+        return self._inner.detect(image)
+
+    def __enter__(self) -> _CtxDetector:
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        return None
+
+
+def test_process_folder_gpu_unavailable_falls_back_to_cpu(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    seen_delegates: list = []
+
+    def fake_create(options: SimpleNamespace) -> _CtxDetector:
+        delegate = options.base_options.delegate
+        if not seen_delegates:
+            seen_delegates.append(delegate)
+            raise RuntimeError("no EGL")
+        seen_delegates.append(delegate)
+        return _CtxDetector([])
+
+    monkeypatch.setattr(core, "_create_detector", fake_create)
+    src = tmp_path / "src"
+    src.mkdir()
+    out = tmp_path / "out"
+
+    found = core.process_folder(src, out, device="gpu")
+
+    assert found == 0
+    assert seen_delegates == [
+        mp.tasks.BaseOptions.Delegate.GPU,
+        mp.tasks.BaseOptions.Delegate.CPU,
+    ]
+
+
+def test_process_folder_cpu_failure_propagates(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_create(options: SimpleNamespace) -> _CtxDetector:
+        raise RuntimeError("model broken")
+
+    monkeypatch.setattr(core, "_create_detector", fake_create)
+
+    with pytest.raises(RuntimeError, match="model broken"):
+        core.process_folder(tmp_path, device="cpu")

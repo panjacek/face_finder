@@ -35,7 +35,7 @@ def empty_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 @pytest.fixture
 def fake_process(monkeypatch: pytest.MonkeyPatch) -> None:
-    def _process(folder: str, out_dir: str | Path) -> int:
+    def _process(folder: str, out_dir: str | Path, device: str = "cpu") -> int:
         out = Path(out_dir)
         out.mkdir(parents=True, exist_ok=True)
         assert cv2.imwrite(str(out / f"{Path(folder).name}.jpg"), np.zeros((10, 10, 3), dtype=np.uint8))
@@ -114,7 +114,7 @@ def test_app_faces_isolated_per_folder(image_root: Path, fake_process: None) -> 
 def test_app_faces_redetects_when_folder_changes(image_root: Path) -> None:
     calls: list[str] = []
 
-    def counting_process(folder: str, out_dir: str | Path) -> int:
+    def counting_process(folder: str, out_dir: str | Path, device: str = "cpu") -> int:
         calls.append(folder)
         out = Path(out_dir)
         out.mkdir(parents=True, exist_ok=True)

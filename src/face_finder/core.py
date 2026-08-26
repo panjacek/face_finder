@@ -109,7 +109,23 @@ def process_file(
     return True
 
 
-def process_folder(folder: str | Path, output_dir: str | Path = "output") -> int:
+def _detector_options(device: str) -> Any:  # mp.tasks.vision.FaceDetectorOptions
+    delegate = mp.tasks.BaseOptions.Delegate.GPU if device == "gpu" else mp.tasks.BaseOptions.Delegate.CPU
+    return mp.tasks.vision.FaceDetectorOptions(
+        base_options=mp.tasks.BaseOptions(
+            model_asset_path=str(MODEL_PATH),
+            delegate=delegate,
+        ),
+        running_mode=mp.tasks.vision.RunningMode.IMAGE,
+        min_detection_confidence=0.7,
+    )
+
+
+def _create_detector(options: Any) -> Any:  # mediapipe.tasks.vision.FaceDetector
+    return mp.tasks.vision.FaceDetector.create_from_options(options)
+
+
+def process_folder(folder: str | Path, output_dir: str | Path = "output", device: str = "cpu") -> int:
     if not MODEL_PATH.exists():
         raise SystemExit(f"Face detection model missing at {MODEL_PATH} - run 'make setup'")
     out_dir = Path(output_dir)
@@ -117,14 +133,18 @@ def process_folder(folder: str | Path, output_dir: str | Path = "output") -> int
         logger.warning(f"Creating {out_dir}")
         out_dir.mkdir(parents=True)
 
-    options = mp.tasks.vision.FaceDetectorOptions(
-        base_options=mp.tasks.BaseOptions(model_asset_path=str(MODEL_PATH)),
-        running_mode=mp.tasks.vision.RunningMode.IMAGE,
-        min_detection_confidence=0.7,
-    )
+    try:
+        face_detector = _create_detector(_detector_options(device))
+    except Exception as exc:
+        if device == "cpu":
+            raise
+        logger.warning(f"{device.upper()} delegate unavailable ({exc}), falling back to CPU")
+        face_detector = _create_detector(_detector_options("cpu"))
+        device = "cpu"
+    logger.info(f"Face detector ready ({device.upper()} delegate)")
 
     found = 0
-    with mp.tasks.vision.FaceDetector.create_from_options(options) as face_detector:
+    with face_detector:
         for image_path in find_images(folder):
             logger.debug(f"{image_path}")
             found += process_file(image_path, face_detector, out_dir)
@@ -136,10 +156,11 @@ def main() -> None:
     parser.add_argument("source", help="source dir or single file to parse")
     parser.add_argument("-l", "--log_lvl", default="INFO", help="logger lvl")
     parser.add_argument("-o", "--output_dir", default="output", help="dir for annotated images")
+    parser.add_argument("-d", "--device", choices=["cpu", "gpu"], default="cpu", help="inference device [cpu]")
     args = parser.parse_args()
     config_logger(args.log_lvl)
     logger.info("=== Face Finder ===")
-    process_folder(args.source, args.output_dir)
+    process_folder(args.source, args.output_dir, args.device)
 
 
 if __name__ == "__main__":
