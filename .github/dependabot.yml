@@ -8,3 +8,6 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    ignore:
+      - dependency-name: "mediapipe"
+        versions: [">= 1.1.0, < 1.2.0"]

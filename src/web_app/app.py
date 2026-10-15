@@ -18,6 +18,7 @@ if not os.path.isdir(ROOT_DIR):
     # /app only exists inside the container; fall back to cwd when running locally.
     ROOT_DIR = os.getcwd()
 OUTPUT_DIR = os.environ.get("FACE_FINDER_OUTPUT", str(Path(ROOT_DIR) / "output"))
+DEVICE = os.environ.get("FACE_FINDER_DEVICE", "cpu")
 IGNORED_FOLDERS = [".git", "__pycache__"]
 FILE_TYPES_TO_SHOW = [".jpg", ".jpeg", ".png"]
 
@@ -66,7 +67,7 @@ def _folder_signature(folder: str) -> tuple[tuple[str, int, int], ...]:
 
 @st.cache_data(show_spinner="Detecting faces...")
 def detect_faces(folder: str, out_dir: str, signature: tuple) -> list[str]:
-    core.process_folder(folder, out_dir)
+    core.process_folder(folder, out_dir, DEVICE)
     return get_images(out_dir)
 
 

@@ -7,7 +7,11 @@ RUN apt-get update \
         libgl1 \
         libglib2.0-0 \
         libegl1 \
+        libegl-mesa0 \
+        libgbm1 \
+        libgl1-mesa-dri \
         libgles2 \
+        ocl-icd-libopencl1 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

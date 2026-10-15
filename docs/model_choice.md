@@ -37,6 +37,16 @@ one-time fetch below replaces what pip used to carry.
 - output: pixel-coordinate bounding boxes + confidence, plus 6 facial keypoints
   (verified at migration time); annotated output currently draws box + score
   label only
+- device: CPU default; the Tasks GPU delegate is wired via
+  `face_finder -d gpu` / `FACE_FINDER_DEVICE=gpu` (web), with automatic CPU
+  fallback when delegate creation fails.
+- mediapipe is intentionally pinned to `1.0.1`: 1.1.0/1.1.1 fail during
+  inference (`Failed to create custom tensor buffer`) on the LiteRT/WebGPU
+  path on NVIDIA/AMD hosts.
+- container GPU path is NVIDIA-only (nvidia-container-toolkit). AMD iGPU remains
+  bare-metal only; run `face_finder ... -d gpu` directly (no `/dev/dri`
+  passthrough in compose).
+- Measured numbers: docs/benchmarks.md.
 
 ## Alternatives considered
 

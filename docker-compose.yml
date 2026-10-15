@@ -12,8 +12,13 @@ services:
 
   face_finder_gpu:
     <<: *app_base
-    devices:
-      - /dev/dri:/dev/dri
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
   face_finder_web:
     <<: *app_base

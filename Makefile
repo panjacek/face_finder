@@ -21,7 +21,7 @@ setup: ## Sync uv env (dev + web groups) and fetch the face-detection model
 test: ## All uv-runnable tests (unit, smoke, web) with coverage; gpu tests excluded
 	uv run --group dev --group web pytest tests -m "not gpu" --cov=face_finder --cov-report=term-missing --cov-report=xml
 
-test-gpu: ## Container smoke test with /dev/dri mounted (env validation, NOT GPU compute)
+test-gpu: ## Container: DRI smoke tests + cpu/gpu delegate benchmarks (pytest-benchmark)
 	docker compose run --rm \
 		-e UV_PROJECT_ENVIRONMENT=/tmp/test-venv \
 		-e UV_CACHE_DIR=/tmp/uv-cache \
